@@ -94,7 +94,12 @@ const steps = [
   },
 ]
 
-export default function AnimatedProfileForm() {
+interface ProfileSetupProps {
+  isFirstTime: boolean;
+  onComplete: () => void;
+}
+
+export default function AnimatedProfileForm({ isFirstTime, onComplete }: ProfileSetupProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<FormData>({

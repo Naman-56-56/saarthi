@@ -94,7 +94,10 @@ const SarthiLogo = ({ className }: { className?: string }) => (
   </svg>
 )
 
-export default function Creative() {
+export function Saarthi() {
+  // Fix for next-themes hydration: only use theme after mount
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({})
   const [selectedInternship, setSelectedInternship] = useState("all")
@@ -629,7 +632,12 @@ export default function Creative() {
                       variant="ghost" 
                       size="icon" 
                       className="rounded-xl"
-                      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                      onClick={() => {
+                        if (!mounted) return;
+                        console.log("Theme toggle clicked. Current theme:", resolvedTheme);
+                        setTheme(resolvedTheme === "dark" ? "light" : "dark");
+                      }}
+                      disabled={!mounted}
                     >
                       <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                       <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -1768,5 +1776,3 @@ export default function Creative() {
   )
 }
 
-export { Creative as Saarthi }
-export { Creative as DesignaliCreative }

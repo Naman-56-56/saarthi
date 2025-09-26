@@ -1,6 +1,6 @@
 "use client"
 
-import { ProfileSetup } from "@/app/profile-setup/page"
+import ProfileSetup from "@/app/profile-setup/page"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface ProfileEditModalProps {
