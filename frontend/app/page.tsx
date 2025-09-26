@@ -15,11 +15,7 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [user, setUser] = useState(null) // Replace with actual user state management
 
-  useEffect(() => {
-    const root = window.document.documentElement
-    root.classList.remove("light", "system")
-    root.classList.add("dark")
-  }, [])
+  // Removed forced dark mode useEffect to allow next-themes to control theme
 
   useEffect(() => {
     const handleScroll = () => {

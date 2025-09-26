@@ -1,4 +1,7 @@
+
 "use client"
+
+import ClientRoot from "@/app/client-root"
 
 import type React from "react"
 import { Analytics } from "@vercel/analytics/next"
@@ -10,16 +13,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const [hydrated, setHydrated] = useState(false)
-
-  useEffect(() => {
-    setHydrated(true)
-  }, [])
-
-  if (!hydrated) {
-    return null
-  }
-
   return (
     <>
       <style>{`
@@ -30,9 +23,12 @@ html {
 }
       `}</style>
       <div className="font-sans">
-        <Suspense fallback={null}>{children}</Suspense>
+        <ClientRoot>
+          <Suspense fallback={null}>{children}</Suspense>
+        </ClientRoot>
         <Analytics />
       </div>
     </>
   )
 }
+    

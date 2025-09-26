@@ -108,7 +108,7 @@ export function Saarthi() {
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false)
   
   // Theme hook
-  const { resolvedTheme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   
   // User data state
   const [user, setUser] = useState<any>(null)
@@ -524,9 +524,22 @@ export function Saarthi() {
   };
 
   // Helper function to get user's phone number
+  // Try to get from localStorage (resume builder form), fallback to user.phone_number
   const getUserPhoneNumber = () => {
+    if (typeof window !== "undefined") {
+      try {
+        const resumeForm = localStorage.getItem("resumeForm");
+        if (resumeForm) {
+          const parsed = JSON.parse(resumeForm);
+          if (parsed?.personalInfo?.phone) {
+            return parsed.personalInfo.phone;
+          }
+        }
+      } catch (e) {
+        // ignore JSON parse errors
+      }
+    }
     if (!user) return "No phone number";
-
     return user.phone_number || "No phone number";
   };
 
@@ -625,32 +638,66 @@ export function Saarthi() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex h-16 items-center border-b bg-background px-4 md:px-6">
-          <Button variant="ghost" size="icon" className="mr-4 rounded-xl" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {sidebarOpen ? <PanelLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+        <header className="flex h-24 items-center border-b bg-background/80 px-4 md:px-8 shadow-sm">
+          <button
+            aria-label="Open sidebar menu"
+            className="mr-4 flex items-center justify-center w-10 h-10 rounded-full bg-white/80 dark:bg-background border border-border shadow-sm hover:bg-primary/10 active:bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all duration-150 group"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            tabIndex={0}
+            type="button"
+          >
+            {sidebarOpen ? (
+              <PanelLeft className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+            ) : (
+              <span className="flex flex-col items-center justify-center w-6 h-6">
+                <span className="block w-6 h-0.5 bg-muted-foreground rounded transition-all group-hover:bg-primary mb-[5px]"></span>
+                <span className="block w-6 h-0.5 bg-muted-foreground rounded transition-all group-hover:bg-primary mb-[5px]"></span>
+                <span className="block w-6 h-0.5 bg-muted-foreground rounded transition-all group-hover:bg-primary"></span>
+              </span>
+            )}
+            <style jsx>{`
+              button:active {
+                transform: scale(0.96);
+                box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
+              }
+            `}</style>
+          </button>
           <div className="flex flex-1 items-center justify-between">
-            <div>
-              <h1 className="text-xl font-semibold">
-                {userLoading 
-                  ? "Loading..." 
-                  : userError 
-                    ? "Welcome back!" 
-                    : `Welcome back, ${getUserFullName()}!`
-                }
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {userError 
-                  ? `Error: ${userError}` 
-                  : "Track your internship journey"
-                }
-              </p>
+            <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 bg-gradient-to-r from-primary/10 via-card/80 to-blue-100/40 border border-primary/20 rounded-xl px-2 py-1 sm:rounded-2xl sm:px-6 sm:py-3 shadow min-h-[36px] w-full max-w-[220px] sm:max-w-xs md:max-w-lg lg:max-w-2xl">
+              <Avatar className="h-6 w-6 sm:h-10 sm:w-10 md:h-12 md:w-12 border border-primary shadow mb-0.5 sm:mb-0">
+                <AvatarImage 
+                  src={user?.profile_picture ? `http://localhost:8000${user.profile_picture}` : "/placeholder.svg?height=24&width=24"} 
+                  alt={getUserFullName()} 
+                />
+                <AvatarFallback className="text-xs sm:text-base md:text-lg">{getUserInitials()}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col items-center sm:items-start text-center sm:text-left w-full">
+                <h1 className="text-xs sm:text-lg md:text-2xl font-semibold sm:font-bold md:font-extrabold text-primary flex items-center gap-1 sm:gap-2">
+                  {userLoading 
+                    ? "Loading..." 
+                    : userError 
+                      ? "Welcome back!" 
+                      : `Welcome back, ${getUserFullName()}!`
+                  }
+                </h1>
+                <p className="text-[10px] sm:text-base md:text-lg text-muted-foreground mt-0.5 font-normal sm:font-medium w-full">
+                  {userError 
+                    ? `Error: ${userError}` 
+                    : "Track your internship journey"
+                  }
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-xl">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-xl"
+                      onClick={() => { window.location.href = "/ai-career-chat"; }}
+                    >
                       <Bot className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
@@ -667,8 +714,8 @@ export function Saarthi() {
                       className="rounded-xl"
                       onClick={() => {
                         if (!mounted) return;
-                        console.log("Theme toggle clicked. Current theme:", resolvedTheme);
-                        setTheme(resolvedTheme === "dark" ? "light" : "dark");
+                        console.log("Theme toggle clicked. theme:", theme, "resolvedTheme:", resolvedTheme);
+                        setTheme(theme === "dark" ? "light" : "dark");
                       }}
                       disabled={!mounted}
                     >
@@ -758,25 +805,29 @@ export function Saarthi() {
               <div className="flex-1 p-6">
                 <Tabs defaultValue="dashboard" className="h-full" value={activeTab} onValueChange={setActiveTab}>
                   <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <TabsList className="grid w-full max-w-[600px] grid-cols-4 rounded-xl p-1">
-                      <TabsTrigger value="dashboard" className="rounded-lg">
-                        Dashboard
-                      </TabsTrigger>
-                      <TabsTrigger value="internships" className="rounded-lg">
-                        Internships
-                      </TabsTrigger>
-                      <TabsTrigger value="leaderboard" className="rounded-lg">
-                        Leaderboard
-                      </TabsTrigger>
-                      <TabsTrigger value="ai-assistant" className="rounded-lg">
-                        AI Assistant
-                      </TabsTrigger>
-                    </TabsList>
+                    <div className="flex w-full max-w-3xl items-center gap-2 bg-card/80 rounded-2xl shadow-lg p-1 border border-border/50">
+                      <TabsList className="flex flex-1 gap-1 bg-transparent">
+                        <TabsTrigger value="dashboard" className="rounded-xl px-5 py-2 font-semibold text-base transition-all data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50">
+                          Dashboard
+                        </TabsTrigger>
+                        <TabsTrigger value="internships" className="rounded-xl px-5 py-2 font-semibold text-base transition-all data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50">
+                          Internships
+                        </TabsTrigger>
+                        <TabsTrigger value="leaderboard" className="rounded-xl px-5 py-2 font-semibold text-base transition-all data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50">
+                          Leaderboard
+                        </TabsTrigger>
+                        <TabsTrigger value="ai-assistant" className="rounded-xl px-5 py-2 font-semibold text-base transition-all data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50">
+                          AI Assistant
+                        </TabsTrigger>
+                      </TabsList>
+                      <div className="ml-2 flex items-center">
+                        <Button className="rounded-xl px-4 py-2 font-semibold text-base bg-gradient-to-r from-primary to-blue-500 text-white shadow-md hover:from-blue-600 hover:to-primary/80 transition-all flex items-center gap-2">
+                          <Download className="h-5 w-5" />
+                          Export Profile
+                        </Button>
+                      </div>
+                    </div>
                     <div className="hidden md:flex gap-2">
-                      <Button variant="outline" className="rounded-xl bg-transparent">
-                        <Download className="mr-2 h-4 w-4" />
-                        Export Profile
-                      </Button>
                       <Link href="/recommendations">
                         <Button className="rounded-xl">
                           <Plus className="mr-2 h-4 w-4" />
@@ -838,134 +889,126 @@ export function Saarthi() {
                         </section>
 
                         {/* Stats Cards */}
-                        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                          <Card className="rounded-2xl border-2">
-                            <CardHeader className="pb-2">
-                              <div className="flex items-center justify-between">
-                                <CardTitle className="text-sm font-medium">Applications</CardTitle>
-                                <Briefcase className="h-4 w-4 text-muted-foreground" />
+                        <section className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4">
+                          {/* Applications Card */}
+                          <Card className="rounded-2xl border-0 shadow-md bg-white/90 dark:bg-card p-4 flex flex-col gap-2">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-primary/10 text-primary rounded-xl p-2 flex items-center justify-center">
+                                <Briefcase className="h-6 w-6" />
                               </div>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold">
+                              <span className="text-sm font-medium text-muted-foreground">Applications</span>
+                            </div>
+                            <div className="flex flex-col gap-0.5 pl-1">
+                              <span className="text-2xl font-extrabold text-foreground">
                                 {statsLoading ? "..." : userStats?.stats?.applications?.total || 0}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
+                              </span>
+                              <span className="text-xs text-green-600 dark:text-green-400 font-semibold">
                                 +{statsLoading ? "..." : userStats?.stats?.applications?.this_month || 0} this month
-                              </p>
-                            </CardContent>
+                              </span>
+                            </div>
                           </Card>
-                          <Card className="rounded-2xl border-2">
-                            <CardHeader className="pb-2">
-                              <div className="flex items-center justify-between">
-                                <CardTitle className="text-sm font-medium">Ranking</CardTitle>
-                                <Trophy className="h-4 w-4 text-muted-foreground" />
+                          {/* Ranking Card */}
+                          <Card className="rounded-2xl border-0 shadow-md bg-white/90 dark:bg-card p-4 flex flex-col gap-2">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-yellow-100 text-yellow-600 rounded-xl p-2 flex items-center justify-center">
+                                <Trophy className="h-6 w-6" />
                               </div>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold">
+                              <span className="text-sm font-medium text-muted-foreground">Ranking</span>
+                            </div>
+                            <div className="flex flex-col gap-0.5 pl-1">
+                              <span className="text-2xl font-extrabold text-foreground">
                                 #{statsLoading ? "..." : userStats?.stats?.ranking?.position || "N/A"}
-                              </div>
-                              <p className="text-xs text-success">
+                              </span>
+                              <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
                                 Top {statsLoading ? "..." : userStats?.stats?.ranking?.percentile || "N/A"}% nationwide
-                              </p>
-                            </CardContent>
+                              </span>
+                            </div>
                           </Card>
-                          <Card className="rounded-2xl border-2">
-                            <CardHeader className="pb-2">
-                              <div className="flex items-center justify-between">
-                                <CardTitle className="text-sm font-medium">Skills Score</CardTitle>
-                                <Target className="h-4 w-4 text-muted-foreground" />
+                          {/* Skills Score Card */}
+                          <Card className="rounded-2xl border-0 shadow-md bg-white/90 dark:bg-card p-4 flex flex-col gap-2">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-green-100 text-green-600 rounded-xl p-2 flex items-center justify-center">
+                                <Target className="h-6 w-6" />
                               </div>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold">
+                              <span className="text-sm font-medium text-muted-foreground">Skills Score</span>
+                            </div>
+                            <div className="flex flex-col gap-0.5 pl-1">
+                              <span className="text-2xl font-extrabold text-foreground">
                                 {statsLoading ? "..." : userStats?.stats?.skills_score?.total?.toLocaleString() || 0}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
+                              </span>
+                              <span className="text-xs text-green-700 dark:text-green-400 font-semibold">
                                 +{statsLoading ? "..." : userStats?.stats?.skills_score?.this_week || 0} this week
-                              </p>
-                            </CardContent>
+                              </span>
+                            </div>
                           </Card>
-                          <Card className="rounded-2xl border-2">
-                            <CardHeader className="pb-2">
-                              <div className="flex items-center justify-between">
-                                <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          {/* Success Rate Card */}
+                          <Card className="rounded-2xl border-0 shadow-md bg-white/90 dark:bg-card p-4 flex flex-col gap-2">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-blue-100 text-blue-600 rounded-xl p-2 flex items-center justify-center">
+                                <TrendingUp className="h-6 w-6" />
                               </div>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold">
+                              <span className="text-sm font-medium text-muted-foreground">Success Rate</span>
+                            </div>
+                            <div className="flex flex-col gap-0.5 pl-1">
+                              <span className="text-2xl font-extrabold text-foreground">
                                 {statsLoading ? "..." : userStats?.stats?.success_rate?.percentage || 0}%
-                              </div>
-                              <p className="text-xs text-success">
+                              </span>
+                              <span className={`text-xs font-semibold ${statsLoading ? '' : userStats?.stats?.success_rate?.status === 'above_average' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                 {statsLoading 
                                   ? "Loading..." 
                                   : userStats?.stats?.success_rate?.status === 'above_average' 
                                     ? "Above average" 
                                     : "Average"
                                 }
-                              </p>
-                            </CardContent>
+                              </span>
+                            </div>
                           </Card>
                         </section>
 
                         {/* Quick Actions */}
                         <section className="space-y-4">
                           <h2 className="text-2xl font-semibold">Quick Actions</h2>
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <Card className="rounded-2xl border-2 hover:border-primary/50 transition-all duration-300 cursor-pointer group">
-                              <CardContent className="p-6 text-center">
-                                <div className="flex flex-col items-center space-y-3">
-                                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                    <Bot className="h-6 w-6 text-primary" />
-                                  </div>
-                                  <Link href="/ai-career-chat" className="block">
-                                    <h3 className="font-medium">AI Career Chat</h3>
-                                    <p className="text-sm text-muted-foreground">Get instant guidance</p>
-                                  </Link>
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4">
+                            {/* AI Career Chat */}
+                            <Link href="/ai-career-chat" className="group">
+                              <Card className="rounded-2xl border-0 shadow-md bg-white/90 dark:bg-card p-5 flex flex-col items-center gap-3 cursor-pointer transition-transform duration-150 group-hover:scale-[1.04] group-active:scale-95 group-hover:shadow-lg">
+                                <div className="h-14 w-14 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+                                  <Bot className="h-7 w-7 text-primary" />
                                 </div>
-                              </CardContent>
-                            </Card>
-                            <Card className="rounded-2xl border-2 hover:border-primary/50 transition-all duration-300 cursor-pointer group">
-                              <CardContent className="p-6 text-center">
-                                <div className="flex flex-col items-center space-y-3">
-                                  <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
-                                    <Target className="h-6 w-6 text-success" />
-                                  </div>
-                                  <div>
-                                    <h3 className="font-medium">Skill Assessment</h3>
-                                    <p className="text-sm text-muted-foreground">Test your abilities</p>
-                                  </div>
+                                <h3 className="text-base font-bold text-foreground">AI Career Chat</h3>
+                                <p className="text-xs text-muted-foreground font-medium">Get instant guidance</p>
+                              </Card>
+                            </Link>
+                            {/* Skill Assessment */}
+                            <div className="group">
+                              <Card className="rounded-2xl border-0 shadow-md bg-white/90 dark:bg-card p-5 flex flex-col items-center gap-3 cursor-pointer transition-transform duration-150 group-hover:scale-[1.04] group-active:scale-95 group-hover:shadow-lg">
+                                <div className="h-14 w-14 rounded-full bg-green-200/60 flex items-center justify-center group-hover:bg-green-300/80 transition-colors">
+                                  <Target className="h-7 w-7 text-green-700" />
                                 </div>
-                              </CardContent>
-                            </Card>
-                            <Card className="rounded-2xl border-2 hover:border-primary/50 transition-all duration-300 cursor-pointer group">
-                              <CardContent className="p-6 text-center">
-                                <Link href="/resume-builder" className="flex flex-col items-center space-y-3">
-                                  <div className="h-12 w-12 rounded-xl bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
-                                    <FileText className="h-6 w-6 text-warning" />
-                                  </div>
-                                  <div>
-                                    <h3 className="font-medium">Resume Builder</h3>
-                                    <p className="text-sm text-muted-foreground">Create perfect resume</p>
-                                  </div>
-                                </Link>
-                              </CardContent>
-                            </Card>
-                            <Card className="rounded-2xl border-2 hover:border-primary/50 transition-all duration-300 cursor-pointer group">
-                              <CardContent className="p-6 text-center">
-                                <div className="flex flex-col items-center space-y-3">
-                                  <div className="h-12 w-12 rounded-xl bg-info/10 flex items-center justify-center group-hover:bg-info/20 transition-colors">
-                                    <MessageSquare className="h-6 w-6 text-info" />
-                                  </div>
-                                  <div>
-                                    <h3 className="font-medium">Mock Interview</h3>
-                                    <p className="text-sm text-muted-foreground">Practice interviews</p>
-                                  </div>
+                                <h3 className="text-base font-bold text-foreground">Skill Assessment</h3>
+                                <p className="text-xs text-muted-foreground font-medium">Test your abilities</p>
+                              </Card>
+                            </div>
+                            {/* Resume Builder */}
+                            <Link href="/resume-builder" className="group">
+                              <Card className="rounded-2xl border-0 shadow-md bg-white/90 dark:bg-card p-5 flex flex-col items-center gap-3 cursor-pointer transition-transform duration-150 group-hover:scale-[1.04] group-active:scale-95 group-hover:shadow-lg">
+                                <div className="h-14 w-14 rounded-full bg-yellow-200/60 flex items-center justify-center group-hover:bg-yellow-300/80 transition-colors">
+                                  <FileText className="h-7 w-7 text-yellow-700" />
                                 </div>
-                              </CardContent>
-                            </Card>
+                                <h3 className="text-base font-bold text-foreground">Resume Builder</h3>
+                                <p className="text-xs text-muted-foreground font-medium">Create perfect resume</p>
+                              </Card>
+                            </Link>
+                            {/* Mock Interview */}
+                            <div className="group">
+                              <Card className="rounded-2xl border-0 shadow-md bg-white/90 dark:bg-card p-5 flex flex-col items-center gap-3 cursor-pointer transition-transform duration-150 group-hover:scale-[1.04] group-active:scale-95 group-hover:shadow-lg">
+                                <div className="h-14 w-14 rounded-full bg-blue-200/60 flex items-center justify-center group-hover:bg-blue-300/80 transition-colors">
+                                  <MessageSquare className="h-7 w-7 text-blue-700" />
+                                </div>
+                                <h3 className="text-base font-bold text-foreground">Mock Interview</h3>
+                                <p className="text-xs text-muted-foreground font-medium">Practice interviews</p>
+                              </Card>
+                            </div>
                           </div>
                         </section>
 
@@ -977,59 +1020,79 @@ export function Saarthi() {
                               View All
                             </Button>
                           </div>
-                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            {internships
-                              .filter((internship) => internship.featured)
-                              .map((internship, index) => (
+                          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                            {(() => {
+                              const featured = internships.filter((internship) => internship.featured);
+                              if (featured.length === 0) {
+                                return (
+                                  <div className="col-span-full flex flex-col items-center justify-center py-12 text-center text-muted-foreground bg-muted/40 rounded-2xl border border-dashed border-border">
+                                    <span className="text-2xl font-bold mb-2">No Featured Internships</span>
+                                    <span className="text-sm">Check back later for new opportunities!</span>
+                                  </div>
+                                );
+                              }
+                              return featured.map((internship, index) => (
                                 <motion.div
                                   key={`${internship.title}-${index}`}
-                                  whileHover={{ scale: 1.02, y: -5 }}
+                                  whileHover={{ scale: 1.025, y: -6 }}
                                   whileTap={{ scale: 0.98 }}
                                 >
-                                  <Card className="overflow-hidden rounded-2xl border-2 hover:border-primary/50 transition-all duration-300">
-                                    <CardHeader className="pb-3">
-                                      <div className="flex items-start justify-between">
-                                        <div className="space-y-1">
-                                          <CardTitle className="text-lg">{internship.title}</CardTitle>
-                                          <CardDescription className="flex items-center gap-1">
-                                            <Building className="h-3 w-3" />
-                                            {internship.department}
-                                          </CardDescription>
+                                  <Card className="overflow-hidden rounded-2xl border-0 shadow-lg hover:shadow-xl hover:ring-2 hover:ring-primary/30 transition-all duration-200 bg-white/95 dark:bg-card group">
+                                    <div className="flex flex-col h-full">
+                                      <div className="flex items-center justify-between px-6 pt-6 pb-2">
+                                        <div className="flex flex-col gap-1">
+                                          <span className="inline-flex items-center gap-2">
+                                            <Building className="h-4 w-4 text-primary" />
+                                            <span className="text-base font-semibold text-foreground">{internship.title}</span>
+                                          </span>
+                                          <span className="text-xs text-muted-foreground font-medium">{internship.department}</span>
                                         </div>
-                                        <Badge className="rounded-xl bg-primary/10 text-primary">Featured</Badge>
+                                        <Badge className="rounded-xl bg-primary/10 text-primary font-semibold text-xs px-3 py-1">Featured</Badge>
                                       </div>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                        <div className="flex items-center gap-1">
-                                          <MapPin className="h-3 w-3" />
-                                          {internship.location}
+                                      <div className="px-6 pb-4 flex flex-col gap-3 flex-1">
+                                        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                                          <span className="flex items-center gap-1">
+                                            <MapPin className="h-4 w-4" />
+                                            {internship.location}
+                                          </span>
+                                          <span className="flex items-center gap-1">
+                                            <Clock className="h-4 w-4" />
+                                            {internship.duration}
+                                          </span>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                          <Clock className="h-3 w-3" />
-                                          {internship.duration}
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-lg font-bold text-success">{internship.stipend}</span>
+                                          <span className="text-xs text-muted-foreground">Stipend</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                          {internship.skills.slice(0, 4).map((skill) => (
+                                            <Badge key={skill} variant="outline" className="rounded-lg text-xs px-2 py-0.5 bg-primary/5 border-primary/10 text-primary font-medium">
+                                              {skill}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2">
+                                          <span className="text-xs text-muted-foreground">Deadline:</span>
+                                          <span className="text-xs font-semibold text-destructive">
+                                            {new Date(internship.deadline).toLocaleDateString()}
+                                          </span>
                                         </div>
                                       </div>
-                                      <div className="text-lg font-semibold text-success">{internship.stipend}</div>
-                                      <div className="flex flex-wrap gap-1">
-                                        {internship.skills.slice(0, 3).map((skill) => (
-                                          <Badge key={skill} variant="outline" className="rounded-lg text-xs">
-                                            {skill}
-                                          </Badge>
-                                        ))}
+                                      <div className="flex items-center gap-3 px-6 pb-5 pt-2 mt-auto">
+                                        <Link href="/recommendations" className="flex-1">
+                                          <Button className="w-full rounded-xl bg-gradient-to-r from-primary to-blue-500 text-white font-bold shadow hover:from-blue-600 hover:to-primary/80 transition-all py-2 text-base">
+                                            Apply Now
+                                          </Button>
+                                        </Link>
+                                        <Button variant="outline" size="icon" className="rounded-xl bg-white/80 dark:bg-card border border-border hover:bg-primary/10 transition-colors">
+                                          <Bookmark className="h-5 w-5 text-primary" />
+                                        </Button>
                                       </div>
-                                    </CardContent>
-                                    <CardFooter className="flex gap-2">
-                                      <Link href="/recommendations" className="flex-1">
-                                        <Button className="w-full rounded-xl">Apply Now</Button>
-                                      </Link>
-                                      <Button variant="outline" size="icon" className="rounded-xl bg-transparent">
-                                        <Bookmark className="h-4 w-4" />
-                                      </Button>
-                                    </CardFooter>
+                                    </div>
                                   </Card>
                                 </motion.div>
-                              ))}
+                              ));
+                            })()}
                           </div>
                         </section>
 
@@ -1703,56 +1766,77 @@ export function Saarthi() {
                   </Card>
 
                   {/* Contact Info */}
-                  <Card className="rounded-2xl">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base">Contact Information</CardTitle>
+                  <Card className="rounded-2xl shadow-md border-2 border-muted bg-gradient-to-br from-white via-slate-50 to-slate-100">
+                    <CardHeader className="pb-2 border-b border-muted/30">
+                      <CardTitle className="text-base font-semibold tracking-wide text-primary flex items-center gap-2">
+                        <Mail className="h-5 w-5 text-primary" />
+                        Contact Information
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center gap-3 text-sm">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="flex-1">
-                          {userLoading 
-                            ? "Loading..." 
-                            : userError 
-                              ? "Error loading email" 
-                              : user?.email || "No email"
+                    <CardContent className="space-y-4 pt-4">
+                      {/* Email Row */}
+                      <div className="flex items-center gap-4 text-base font-medium">
+                        <div className="flex items-center gap-2 min-w-[32px]">
+                          <Mail className="h-5 w-5 text-blue-500" />
+                        </div>
+                        <span className="flex-1 truncate">
+                          {userLoading
+                            ? <span className="text-muted-foreground">Loading...</span>
+                            : userError
+                              ? <span className="text-destructive">Error loading email</span>
+                              : user?.email || <span className="text-muted-foreground">No email</span>
                           }
                         </span>
-                        <Badge
-                          variant="outline"
-                          className="rounded text-xs bg-success/10 text-success border-success/20"
-                        >
-                          Verified
-                        </Badge>
+                        <span className="flex items-center gap-1">
+                          <Badge variant="outline" className="rounded-full px-2 py-0.5 text-xs bg-green-100 text-green-700 border-green-200">Verified</Badge>
+                        </span>
                       </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span className="flex-1">
-                          {userLoading 
-                            ? "Loading..." 
-                            : userError 
-                              ? "Error loading phone" 
-                              : getUserPhoneNumber()
+                      {/* Phone Row */}
+                      <div className="flex items-center gap-4 text-base font-medium">
+                        <div className="flex items-center gap-2 min-w-[32px]">
+                          <Phone className="h-5 w-5 text-amber-500" />
+                        </div>
+                        <span className="flex-1 truncate">
+                          {userLoading
+                            ? <span className="text-muted-foreground">Loading...</span>
+                            : userError
+                              ? <span className="text-destructive">Error loading phone</span>
+                              : getUserPhoneNumber() && getUserPhoneNumber() !== "No phone number"
+                                ? getUserPhoneNumber()
+                                : <span className="text-muted-foreground">No phone number</span>
                           }
                         </span>
-                        <Badge
-                          variant="outline"
-                          className="rounded text-xs bg-success/10 text-success border-success/20"
-                        >
-                          Verified
-                        </Badge>
+                        <span className="flex items-center gap-1">
+                          {(getUserPhoneNumber() && getUserPhoneNumber() !== "No phone number") ? (
+                            <Badge variant="outline" className="rounded-full px-2 py-0.5 text-xs bg-green-100 text-green-700 border-green-200">Verified</Badge>
+                          ) : (
+                            <Badge variant="outline" className="rounded-full px-2 py-0.5 text-xs bg-gray-100 text-gray-500 border-gray-200">Not set</Badge>
+                          )}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          {userLoading 
-                            ? "Loading..." 
-                            : userError 
-                              ? "Location not available"
-                              : (user?.city && user?.state) 
+                      {/* Location Row */}
+                      <div className="flex items-center gap-4 text-base font-medium">
+                        <div className="flex items-center gap-2 min-w-[32px]">
+                          <MapPin className="h-5 w-5 text-emerald-500" />
+                        </div>
+                        <span className="flex-1 truncate">
+                          {userLoading
+                            ? <span className="text-muted-foreground">Loading...</span>
+                            : userError
+                              ? <span className="text-destructive">Location not available</span>
+                              : (user?.city && user?.state)
                                 ? `${user.city}, ${user.state}`
-                                : user?.city || "Location not set"
+                                : user?.city
+                                  ? user.city
+                                  : <span className="text-muted-foreground">Location not set</span>
                           }
+                        </span>
+                        <span className="flex items-center gap-1">
+                          {(user?.city && user?.state) || user?.city ? (
+                            <Badge variant="outline" className="rounded-full px-2 py-0.5 text-xs bg-green-100 text-green-700 border-green-200">Set</Badge>
+                          ) : (
+                            <Badge variant="outline" className="rounded-full px-2 py-0.5 text-xs bg-gray-100 text-gray-500 border-gray-200">Not set</Badge>
+                          )}
                         </span>
                       </div>
                     </CardContent>
