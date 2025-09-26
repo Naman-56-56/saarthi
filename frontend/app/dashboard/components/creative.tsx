@@ -114,6 +114,9 @@ export function Saarthi() {
   const [user, setUser] = useState<any>(null)
   const [userLoading, setUserLoading] = useState(true)
   const [userError, setUserError] = useState<string | null>(null)
+  const [userStats, setUserStats] = useState<any>(null)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [statsError, setStatsError] = useState<string | null>(null)
   
   type Internship = {
     title: string
@@ -158,6 +161,36 @@ export function Saarthi() {
     }
 
     fetchUserData()
+  }, [])
+
+  // Fetch user stats
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      try {
+        setStatsLoading(true)
+        const response = await fetch("http://localhost:8000/api/users/stats/", {
+          credentials: "include",
+        })
+        
+        if (response.ok) {
+          const statsData = await response.json()
+          setUserStats(statsData)
+          setStatsError(null)
+        } else if (response.status === 401) {
+          // User not authenticated, will be handled by user data fetch
+          setStatsError("Authentication required")
+        } else {
+          setStatsError("Failed to fetch user stats")
+        }
+      } catch (error) {
+        console.error("Error fetching user stats:", error)
+        setStatsError("Network error")
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+
+    fetchUserStats()
   }, [])
 
   // Helper function to get user's initials
@@ -814,8 +847,12 @@ export function Saarthi() {
                               </div>
                             </CardHeader>
                             <CardContent>
-                              <div className="text-2xl font-bold">12</div>
-                              <p className="text-xs text-muted-foreground">+3 this month</p>
+                              <div className="text-2xl font-bold">
+                                {statsLoading ? "..." : userStats?.stats?.applications?.total || 0}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                +{statsLoading ? "..." : userStats?.stats?.applications?.this_month || 0} this month
+                              </p>
                             </CardContent>
                           </Card>
                           <Card className="rounded-2xl border-2">
@@ -826,8 +863,12 @@ export function Saarthi() {
                               </div>
                             </CardHeader>
                             <CardContent>
-                              <div className="text-2xl font-bold">#247</div>
-                              <p className="text-xs text-success">Top 5% nationwide</p>
+                              <div className="text-2xl font-bold">
+                                #{statsLoading ? "..." : userStats?.stats?.ranking?.position || "N/A"}
+                              </div>
+                              <p className="text-xs text-success">
+                                Top {statsLoading ? "..." : userStats?.stats?.ranking?.percentile || "N/A"}% nationwide
+                              </p>
                             </CardContent>
                           </Card>
                           <Card className="rounded-2xl border-2">
@@ -838,8 +879,12 @@ export function Saarthi() {
                               </div>
                             </CardHeader>
                             <CardContent>
-                              <div className="text-2xl font-bold">2,540</div>
-                              <p className="text-xs text-muted-foreground">+120 this week</p>
+                              <div className="text-2xl font-bold">
+                                {statsLoading ? "..." : userStats?.stats?.skills_score?.total?.toLocaleString() || 0}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                +{statsLoading ? "..." : userStats?.stats?.skills_score?.this_week || 0} this week
+                              </p>
                             </CardContent>
                           </Card>
                           <Card className="rounded-2xl border-2">
@@ -850,8 +895,17 @@ export function Saarthi() {
                               </div>
                             </CardHeader>
                             <CardContent>
-                              <div className="text-2xl font-bold">78%</div>
-                              <p className="text-xs text-success">Above average</p>
+                              <div className="text-2xl font-bold">
+                                {statsLoading ? "..." : userStats?.stats?.success_rate?.percentage || 0}%
+                              </div>
+                              <p className="text-xs text-success">
+                                {statsLoading 
+                                  ? "Loading..." 
+                                  : userStats?.stats?.success_rate?.status === 'above_average' 
+                                    ? "Above average" 
+                                    : "Average"
+                                }
+                              </p>
                             </CardContent>
                           </Card>
                         </section>
@@ -991,27 +1045,56 @@ export function Saarthi() {
                               <CardContent className="space-y-4">
                                 <div className="flex items-center justify-between">
                                   <span className="text-sm">Applied</span>
-                                  <span className="text-sm font-medium">12 applications</span>
+                                  <span className="text-sm font-medium">
+                                    {statsLoading 
+                                      ? "..." 
+                                      : `${userStats?.stats?.applications?.total || 0} applications`
+                                    }
+                                  </span>
                                 </div>
                                 <Progress value={100} className="h-2" />
 
                                 <div className="flex items-center justify-between">
                                   <span className="text-sm">Under Review</span>
-                                  <span className="text-sm font-medium">8 applications</span>
+                                  <span className="text-sm font-medium">
+                                    {statsLoading 
+                                      ? "..." 
+                                      : `${Math.max(0, (userStats?.stats?.applications?.total || 0) - 2)} applications`
+                                    }
+                                  </span>
                                 </div>
-                                <Progress value={67} className="h-2" />
+                                <Progress 
+                                  value={statsLoading ? 50 : Math.max(10, ((userStats?.stats?.applications?.total || 0) - 2) / (userStats?.stats?.applications?.total || 1) * 100)} 
+                                  className="h-2" 
+                                />
 
                                 <div className="flex items-center justify-between">
                                   <span className="text-sm">Interview Scheduled</span>
-                                  <span className="text-sm font-medium">3 applications</span>
+                                  <span className="text-sm font-medium">
+                                    {statsLoading 
+                                      ? "..." 
+                                      : `${Math.max(0, Math.floor((userStats?.stats?.applications?.total || 0) * 0.25))} applications`
+                                    }
+                                  </span>
                                 </div>
-                                <Progress value={25} className="h-2" />
+                                <Progress 
+                                  value={statsLoading ? 25 : Math.max(5, Math.floor((userStats?.stats?.applications?.total || 0) * 0.25) / (userStats?.stats?.applications?.total || 1) * 100)} 
+                                  className="h-2" 
+                                />
 
                                 <div className="flex items-center justify-between">
                                   <span className="text-sm">Offers Received</span>
-                                  <span className="text-sm font-medium">1 application</span>
+                                  <span className="text-sm font-medium">
+                                    {statsLoading 
+                                      ? "..." 
+                                      : `${Math.max(0, Math.floor((userStats?.stats?.applications?.total || 0) * 0.1))} applications`
+                                    }
+                                  </span>
                                 </div>
-                                <Progress value={8} className="h-2" />
+                                <Progress 
+                                  value={statsLoading ? 8 : Math.max(2, Math.floor((userStats?.stats?.applications?.total || 0) * 0.1) / (userStats?.stats?.applications?.total || 1) * 100)} 
+                                  className="h-2" 
+                                />
                               </CardContent>
                             </Card>
 
@@ -1024,25 +1107,56 @@ export function Saarthi() {
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm">Applications Target</span>
-                                    <span className="text-sm font-medium">12/15</span>
+                                    <span className="text-sm font-medium">
+                                      {statsLoading 
+                                        ? "..." 
+                                        : `${userStats?.stats?.applications?.total || 0}/${Math.max(5, (userStats?.stats?.applications?.total || 0) + 3)}`
+                                      }
+                                    </span>
                                   </div>
-                                  <Progress value={80} className="h-2" />
+                                  <Progress 
+                                    value={statsLoading ? 50 : Math.min(100, ((userStats?.stats?.applications?.total || 0) / Math.max(5, (userStats?.stats?.applications?.total || 0) + 3)) * 100)} 
+                                    className="h-2" 
+                                  />
                                 </div>
 
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between">
-                                    <span className="text-sm">Skill Assessments</span>
-                                    <span className="text-sm font-medium">3/5</span>
+                                    <span className="text-sm">Profile Completion</span>
+                                    <span className="text-sm font-medium">
+                                      {statsLoading 
+                                        ? "..." 
+                                        : `${userStats?.stats?.profile_completion || 0}%/100%`
+                                      }
+                                    </span>
                                   </div>
-                                  <Progress value={60} className="h-2" />
+                                  <Progress 
+                                    value={statsLoading ? 60 : userStats?.stats?.profile_completion || 0} 
+                                    className="h-2" 
+                                  />
                                 </div>
 
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between">
-                                    <span className="text-sm">Learning Hours</span>
-                                    <span className="text-sm font-medium">24/30</span>
+                                    <span className="text-sm">Skill Progress</span>
+                                    <span className="text-sm font-medium">
+                                      {statsLoading 
+                                        ? "..." 
+                                        : userStats?.skills_progress?.length > 0
+                                          ? `${Math.round(userStats.skills_progress.reduce((acc: number, skill: any) => acc + skill.progress, 0) / userStats.skills_progress.length)}%`
+                                          : "0%"
+                                      }
+                                    </span>
                                   </div>
-                                  <Progress value={80} className="h-2" />
+                                  <Progress 
+                                    value={statsLoading 
+                                      ? 40 
+                                      : userStats?.skills_progress?.length > 0
+                                        ? Math.round(userStats.skills_progress.reduce((acc: number, skill: any) => acc + skill.progress, 0) / userStats.skills_progress.length)
+                                        : 0
+                                    } 
+                                    className="h-2" 
+                                  />
                                 </div>
 
                                 <div className="space-y-2">
@@ -1575,7 +1689,14 @@ export function Saarthi() {
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Trophy className="h-4 w-4 text-primary" />
-                          <span>Rank #247 • Top 5%</span>
+                          <span>
+                            {statsLoading 
+                              ? "Loading rank..." 
+                              : userStats?.stats?.ranking?.position 
+                                ? `Rank #${userStats.stats.ranking.position} • Top ${userStats.stats.ranking.percentile}%`
+                                : "Rank not available"
+                            }
+                          </span>
                         </div>
                       </div>
                     </CardContent>
@@ -1643,34 +1764,33 @@ export function Saarthi() {
                       <CardTitle className="text-base">Skill Progress</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Web Development</span>
-                          <span>85%</span>
+                      {statsLoading ? (
+                        <div className="space-y-4">
+                          {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span>Loading...</span>
+                                <span>...</span>
+                              </div>
+                              <Progress value={50} className="h-2" />
+                            </div>
+                          ))}
                         </div>
-                        <Progress value={85} className="h-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Data Analysis</span>
-                          <span>72%</span>
+                      ) : userStats?.skills_progress?.length > 0 ? (
+                        userStats.skills_progress.map((skill: any, index: number) => (
+                          <div key={index} className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span>{skill.name}</span>
+                              <span>{skill.progress}%</span>
+                            </div>
+                            <Progress value={skill.progress} className="h-2" />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-muted-foreground text-center py-4">
+                          Add skills to your profile to see progress
                         </div>
-                        <Progress value={72} className="h-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Project Management</span>
-                          <span>68%</span>
-                        </div>
-                        <Progress value={68} className="h-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Communication</span>
-                          <span>90%</span>
-                        </div>
-                        <Progress value={90} className="h-2" />
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -1680,34 +1800,40 @@ export function Saarthi() {
                       <CardTitle className="text-base">Recent Activity</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div className="flex items-start gap-3 text-sm">
-                        <div className="h-2 w-2 rounded-full bg-primary mt-2"></div>
-                        <div className="flex-1">
-                          <p>Applied to Digital India Initiative</p>
-                          <p className="text-xs text-muted-foreground">Application #DI-2024-001 • 2 hours ago</p>
+                      {statsLoading ? (
+                        <div className="space-y-3">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex items-start gap-3 text-sm">
+                              <div className="h-2 w-2 rounded-full bg-muted mt-2"></div>
+                              <div className="flex-1">
+                                <p>Loading...</p>
+                                <p className="text-xs text-muted-foreground">...</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                      <div className="flex items-start gap-3 text-sm">
-                        <div className="h-2 w-2 rounded-full bg-success mt-2"></div>
-                        <div className="flex-1">
-                          <p>Completed skill assessment</p>
-                          <p className="text-xs text-muted-foreground">Scored 85% in Web Development • 1 day ago</p>
+                      ) : userStats?.recent_activity?.length > 0 ? (
+                        userStats.recent_activity.map((activity: any, index: number) => (
+                          <div key={index} className="flex items-start gap-3 text-sm">
+                            <div className={`h-2 w-2 rounded-full mt-2 ${
+                              activity.color === 'primary' ? 'bg-primary' :
+                              activity.color === 'success' ? 'bg-success' :
+                              activity.color === 'warning' ? 'bg-warning' :
+                              activity.color === 'info' ? 'bg-info' : 'bg-muted'
+                            }`}></div>
+                            <div className="flex-1">
+                              <p>{activity.title}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {activity.description} • {activity.time}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-muted-foreground text-center py-4">
+                          Start your journey to see activities here
                         </div>
-                      </div>
-                      <div className="flex items-start gap-3 text-sm">
-                        <div className="h-2 w-2 rounded-full bg-warning mt-2"></div>
-                        <div className="flex-1">
-                          <p>Profile viewed by recruiter</p>
-                          <p className="text-xs text-muted-foreground">Ministry of Electronics & IT • 2 days ago</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3 text-sm">
-                        <div className="h-2 w-2 rounded-full bg-info mt-2"></div>
-                        <div className="flex-1">
-                          <p>Joined AI Career Guidance webinar</p>
-                          <p className="text-xs text-muted-foreground">Earned 50 skill points • 3 days ago</p>
-                        </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -1717,27 +1843,66 @@ export function Saarthi() {
                       <CardTitle className="text-base">Recent Achievements</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/5">
-                        <Trophy className="h-6 w-6 text-primary" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Top 5% Achiever</p>
-                          <p className="text-xs text-muted-foreground">Nationwide ranking</p>
+                      {statsLoading ? (
+                        <div className="space-y-3">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-muted/5">
+                              <div className="h-6 w-6 bg-muted rounded" />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">Loading...</p>
+                                <p className="text-xs text-muted-foreground">...</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-2 rounded-lg bg-success/5">
-                        <Target className="h-6 w-6 text-success" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Skill Master</p>
-                          <p className="text-xs text-muted-foreground">Web Development</p>
+                      ) : userStats?.achievements?.length > 0 ? (
+                        userStats.achievements.map((achievement: any, index: number) => (
+                          <div key={index} className={`flex items-center gap-3 p-2 rounded-lg ${
+                            achievement.color === 'primary' ? 'bg-primary/5' :
+                            achievement.color === 'success' ? 'bg-success/5' :
+                            achievement.color === 'warning' ? 'bg-warning/5' :
+                            achievement.color === 'info' ? 'bg-info/5' : 'bg-muted/5'
+                          }`}>
+                            {achievement.icon === 'trophy' ? (
+                              <Trophy className={`h-6 w-6 ${
+                                achievement.color === 'primary' ? 'text-primary' :
+                                achievement.color === 'success' ? 'text-success' :
+                                achievement.color === 'warning' ? 'text-warning' :
+                                achievement.color === 'info' ? 'text-info' : 'text-muted-foreground'
+                              }`} />
+                            ) : achievement.icon === 'target' ? (
+                              <Target className={`h-6 w-6 ${
+                                achievement.color === 'primary' ? 'text-primary' :
+                                achievement.color === 'success' ? 'text-success' :
+                                achievement.color === 'warning' ? 'text-warning' :
+                                achievement.color === 'info' ? 'text-info' : 'text-muted-foreground'
+                              }`} />
+                            ) : achievement.icon === 'users' ? (
+                              <Users className={`h-6 w-6 ${
+                                achievement.color === 'primary' ? 'text-primary' :
+                                achievement.color === 'success' ? 'text-success' :
+                                achievement.color === 'warning' ? 'text-warning' :
+                                achievement.color === 'info' ? 'text-info' : 'text-muted-foreground'
+                              }`} />
+                            ) : (
+                              <Trophy className={`h-6 w-6 ${
+                                achievement.color === 'primary' ? 'text-primary' :
+                                achievement.color === 'success' ? 'text-success' :
+                                achievement.color === 'warning' ? 'text-warning' :
+                                achievement.color === 'info' ? 'text-info' : 'text-muted-foreground'
+                              }`} />
+                            )}
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{achievement.title}</p>
+                              <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-muted-foreground text-center py-4">
+                          Complete your profile to unlock achievements
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-2 rounded-lg bg-warning/5">
-                        <Users className="h-6 w-6 text-warning" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Community Helper</p>
-                          <p className="text-xs text-muted-foreground">50+ forum answers</p>
-                        </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
 
