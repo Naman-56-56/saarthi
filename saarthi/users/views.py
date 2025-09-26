@@ -8,6 +8,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from django.http import JsonResponse, HttpResponseBadRequest
+from django.utils import timezone
 from .models import UserProfile, EmailOTP
 
 @csrf_exempt
@@ -221,6 +222,7 @@ def me(request):
 	if profile:
 		payload.update({
 			'phone': profile.phone,
+			'phone_number': profile.phone,  # Add phone_number alias for compatibility
 			'date_of_birth': profile.date_of_birth.isoformat() if profile.date_of_birth else None,
 			'gender': profile.gender,
 			'college_name': profile.college_name,
@@ -338,4 +340,167 @@ def logout_view(request):
 
     auth_logout(request)
     response = JsonResponse({'success': True, 'message': 'Logged out successfully'})
+    return _set_cors_headers(response, request)
+
+@csrf_exempt  
+def user_stats(request):
+    """Return user statistics and dashboard data."""
+    if request.method == 'OPTIONS':
+        response = JsonResponse({'detail': 'CORS preflight'})
+        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type"
+        return _set_cors_headers(response, request)
+
+    if request.method != 'GET':
+        return HttpResponseBadRequest('Only GET allowed')
+
+    if not request.user.is_authenticated:
+        response = JsonResponse({'error': 'Authentication required'}, status=401)
+        return _set_cors_headers(response, request)
+
+    user = request.user
+    profile = getattr(user, 'profile', None)
+    
+    # Calculate user statistics
+    # For now, we'll use some basic calculations and mock data
+    # In a real application, these would come from actual user activity
+    
+    # Basic stats based on profile completeness and data
+    profile_completion = 0
+    if profile:
+        fields_to_check = [
+            profile.college_name, profile.degree, profile.branch, 
+            profile.city, profile.state, profile.phone, profile.skills
+        ]
+        completed_fields = sum(1 for field in fields_to_check if field)
+        profile_completion = int((completed_fields / len(fields_to_check)) * 100)
+    
+    # Mock some statistics - in a real app these would come from actual data
+    stats = {
+        'applications': {
+            'total': max(1, profile_completion // 10),  # Scale with profile completion
+            'this_month': max(0, profile_completion // 30),
+        },
+        'ranking': {
+            'position': max(100, 1000 - profile_completion * 8),  # Better ranking with better profile
+            'percentile': min(95, profile_completion + random.randint(-5, 10)),
+        },
+        'skills_score': {
+            'total': profile_completion * 25 + random.randint(0, 200),
+            'this_week': random.randint(0, 150),
+        },
+        'success_rate': {
+            'percentage': min(90, profile_completion + random.randint(-10, 20)),
+            'status': 'above_average' if profile_completion > 70 else 'average',
+        },
+        'profile_completion': profile_completion,
+    }
+    
+    # Skills progress based on user's actual skills
+    skills_progress = []
+    if profile and profile.skills:
+        try:
+            # Try to parse skills as JSON first, then fallback to comma-separated
+            if profile.skills.startswith('[') or profile.skills.startswith('{'):
+                import json
+                skills_list = json.loads(profile.skills) if isinstance(profile.skills, str) else profile.skills
+            else:
+                skills_list = [skill.strip() for skill in profile.skills.split(',') if skill.strip()]
+            
+            # Create progress for each skill
+            for i, skill in enumerate(skills_list[:6]):  # Limit to 6 skills
+                progress_value = min(95, profile_completion + random.randint(-20, 25))
+                skills_progress.append({
+                    'name': skill.title(),
+                    'progress': progress_value,
+                })
+        except:
+            # Fallback to default skills if parsing fails
+            default_skills = ['Web Development', 'Communication', 'Problem Solving', 'Leadership']
+            for skill in default_skills:
+                skills_progress.append({
+                    'name': skill,
+                    'progress': min(95, profile_completion + random.randint(-15, 20)),
+                })
+    else:
+        # Default skills for users without skills set
+        default_skills = ['Communication', 'Problem Solving', 'Time Management', 'Teamwork']
+        for skill in default_skills:
+            skills_progress.append({
+                'name': skill,
+                'progress': random.randint(30, 75),
+            })
+    
+    # Recent activity based on profile and join date
+    recent_activity = [
+        {
+            'type': 'profile_update',
+            'title': 'Profile updated',
+            'description': f'Updated {profile.updated_at.strftime("%B %d")}' if profile else 'Recently',
+            'time': 'Recently',
+            'color': 'primary'
+        }
+    ]
+    
+    if profile and profile.skills:
+        recent_activity.append({
+            'type': 'skills_added', 
+            'title': 'Skills added to profile',
+            'description': 'Enhanced your profile visibility',
+            'time': '2 days ago',
+            'color': 'success'
+        })
+    
+    if profile_completion > 70:
+        recent_activity.append({
+            'type': 'profile_viewed',
+            'title': 'Profile viewed by recruiters',
+            'description': 'Your complete profile attracts attention',
+            'time': '3 days ago', 
+            'color': 'warning'
+        })
+    
+    recent_activity.append({
+        'type': 'platform_joined',
+        'title': 'Joined Saarthi platform',
+        'description': 'Welcome to your career journey!',
+        'time': user.date_joined.strftime("%B %d"),
+        'color': 'info'
+    })
+    
+    # Achievements based on user progress
+    achievements = []
+    
+    if profile_completion > 80:
+        achievements.append({
+            'title': 'Profile Master',
+            'description': f'{profile_completion}% profile complete',
+            'icon': 'trophy',
+            'color': 'primary'
+        })
+    
+    if profile and profile.skills and len(profile.skills.split(',')) >= 3:
+        achievements.append({
+            'title': 'Skill Collector', 
+            'description': 'Multiple skills added',
+            'icon': 'target',
+            'color': 'success'
+        })
+    
+    if user.date_joined and (timezone.now() - user.date_joined).days >= 7:
+        achievements.append({
+            'title': 'Early Adopter',
+            'description': 'Active platform member',
+            'icon': 'users', 
+            'color': 'warning'
+        })
+    
+    payload = {
+        'stats': stats,
+        'skills_progress': skills_progress,
+        'recent_activity': recent_activity,
+        'achievements': achievements,
+    }
+    
+    response = JsonResponse(payload)
     return _set_cors_headers(response, request)
