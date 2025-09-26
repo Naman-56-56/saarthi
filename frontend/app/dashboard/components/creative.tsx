@@ -318,9 +318,9 @@ export function Saarthi() {
       items: [
         { title: "Career Guidance", url: "#" },
         { title: "Skill Assessment", url: "#" },
-        { title: "Interview Prep", url: "#" },
-        { title: "Resume Builder", url: "#" },
-        { title: "Application Review", url: "#" },
+  { title: "Interview Prep", url: "#" },
+  { title: "Resume Builder", url: "/resume-builder" },
+  { title: "Application Review", url: "#" },
         { title: "Mock Interviews", url: "#" },
       ],
     },
@@ -888,7 +888,7 @@ export function Saarthi() {
                             </Card>
                             <Card className="rounded-2xl border-2 hover:border-primary/50 transition-all duration-300 cursor-pointer group">
                               <CardContent className="p-6 text-center">
-                                <div className="flex flex-col items-center space-y-3">
+                                <Link href="/resume-builder/free-resume-maker/builder" className="flex flex-col items-center space-y-3">
                                   <div className="h-12 w-12 rounded-xl bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
                                     <FileText className="h-6 w-6 text-warning" />
                                   </div>
@@ -896,7 +896,7 @@ export function Saarthi() {
                                     <h3 className="font-medium">Resume Builder</h3>
                                     <p className="text-sm text-muted-foreground">Create perfect resume</p>
                                   </div>
-                                </div>
+                                </Link>
                               </CardContent>
                             </Card>
                             <Card className="rounded-2xl border-2 hover:border-primary/50 transition-all duration-300 cursor-pointer group">
@@ -1466,7 +1466,7 @@ export function Saarthi() {
                               </Card>
                               <Card className="rounded-xl border-2 hover:border-primary/50 transition-colors cursor-pointer">
                                 <CardContent className="p-4">
-                                  <div className="flex items-center gap-3">
+                                  <Link href="/resume-builder/free-resume-maker/builder" className="flex items-center gap-3">
                                     <FileText className="h-8 w-8 text-primary" />
                                     <div>
                                       <h3 className="font-medium">Resume Builder</h3>
@@ -1474,7 +1474,7 @@ export function Saarthi() {
                                         Create a professional resume with AI help
                                       </p>
                                     </div>
-                                  </div>
+                                  </Link>
                                 </CardContent>
                               </Card>
                               <Card className="rounded-xl border-2 hover:border-primary/50 transition-colors cursor-pointer">

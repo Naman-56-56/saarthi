@@ -2,11 +2,12 @@
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Brain, Link, Folder, Mic } from "lucide-react"
+import { Brain, Folder, Mic } from "lucide-react"
 import { LiquidMetal, PulsingBorder } from "@paper-design/shaders-react"
 import { motion } from "framer-motion"
 import { useState } from "react"
 import { apiPost } from "@/lib/api";
+import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
 import ReactMarkdown from "react-markdown";
 
@@ -59,6 +60,13 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
+      <div className="w-full max-w-4xl flex justify-start mb-4">
+        <Link href="/dashboard">
+          <button className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded shadow text-xs h-7 min-w-[90px] transition-all">
+            ← Back to Dashboard
+          </button>
+        </Link>
+      </div>
       {/* Daksh.ai Branding and Description */}
       <div className="w-full max-w-2xl text-center mb-8">
         <h1 className="text-3xl font-bold mb-2 text-orange-600">Daksh.ai</h1>
@@ -249,7 +257,7 @@ export function ChatInterface() {
                   size="sm"
                   className="h-9 w-9 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white p-0"
                 >
-                  <Link className="h-4 w-4" />
+                  <Link className="h-4 w-4" href={""} />
                 </Button>
                 {/* Center model selector */}
                 <div className="flex items-center">
