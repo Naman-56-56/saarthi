@@ -132,9 +132,15 @@ export default function AnimatedProfileForm({ isFirstTime, onComplete }: Profile
   // Redirect to dashboard after verification
   useEffect(() => {
     if (isVerified) {
-      router.push("/dashboard");
+      if (onComplete) {
+        // If modal context, call onComplete instead of navigating
+        onComplete();
+      } else {
+        // Normal page context, navigate to dashboard
+        router.push("/dashboard");
+      }
     }
-  }, [isVerified, router]);
+  }, [isVerified, router, onComplete]);
 
   const handleInputChange = (field: keyof FormData, value: string | File | null) => {
     setFormData((prev) => ({ ...prev, [field]: value }))

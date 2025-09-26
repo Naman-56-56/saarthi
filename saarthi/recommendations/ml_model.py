@@ -38,27 +38,27 @@ def load_models():
 
 def recommend_jobs(user_skills, top_n=3):
     """
-    Recommend jobs based on user skills.
+    Recommend jobs using a hybrid approach combining cosine similarity and Random Forest predictions.
+    
+    The hybrid score is calculated as: 0.6 * cosine_score + 0.4 * rf_score
     
     Args:
         user_skills (list): List of user skills as strings
         top_n (int): Number of top recommendations to return
     
     Returns:
-        list: List of dictionaries containing job recommendations with title and match_score
+        list: List of dictionaries containing job recommendations with title, hybrid_score, 
+              and other available columns like department, location, company, duration, stipend
     """
     try:
         # Load models and data
         vectorizer, rf_model, data = load_models()
         
-        # Convert user skills to a single string
+        # Step 1: Join skills into text and vectorize
         user_skills_text = ' '.join(user_skills)
-        
-        # Vectorize user skills
         user_vector = vectorizer.transform([user_skills_text])
         
-        # Get job skills from data (assuming there's a 'skills' or similar column)
-        # You may need to adjust this based on your actual data structure
+        # Step 2: Get job skills from data
         job_skills_columns = []
         for col in data.columns:
             if 'skill' in col.lower() or 'requirement' in col.lower() or 'technology' in col.lower():
@@ -74,8 +74,12 @@ def recommend_jobs(user_skills, top_n=3):
                 # Try to find any text column that might contain skills
                 text_columns = data.select_dtypes(include=['object']).columns
                 if len(text_columns) > 1:
-                    # Combine all text columns
-                    job_skills_text = data[text_columns].fillna('').apply(lambda x: ' '.join(x), axis=1)
+                    # Combine all text columns except title/position columns
+                    skill_cols = [col for col in text_columns if 'title' not in col.lower() and 'position' not in col.lower()]
+                    if skill_cols:
+                        job_skills_text = data[skill_cols].fillna('').apply(lambda x: ' '.join(x), axis=1)
+                    else:
+                        job_skills_text = data[text_columns].fillna('').apply(lambda x: ' '.join(x), axis=1)
                 else:
                     raise ValueError("No suitable skills column found in the data")
         else:
@@ -85,18 +89,23 @@ def recommend_jobs(user_skills, top_n=3):
         # Vectorize job skills
         job_vectors = vectorizer.transform(job_skills_text)
         
-        # Calculate similarity scores
-        similarity_scores = cosine_similarity(user_vector, job_vectors).flatten()
+        # Step 3: Compute cosine similarity between user_vector and job skill vectors
+        cosine_scores = cosine_similarity(user_vector, job_vectors).flatten()
         
-        # Get top N indices
-        top_indices = similarity_scores.argsort()[-top_n:][::-1]
+        # Step 4: Get Random Forest predictions
+        rf_probabilities = rf_model.predict_proba(user_vector)[0]  # Get probabilities for first (only) sample
+        rf_classes = rf_model.classes_  # Get the class labels (job titles)
         
-        # Prepare recommendations
-        recommendations = []
-        for idx in top_indices:
+        # Create a mapping from job titles to RF probabilities
+        rf_score_map = {}
+        for i, job_title in enumerate(rf_classes):
+            rf_score_map[job_title] = rf_probabilities[i]
+        
+        # Step 5: For each row in dataset, compute hybrid score
+        hybrid_scores = []
+        for idx in range(len(data)):
+            # Get job title for this row
             job_title = ""
-            
-            # Try to find job title column
             if 'title' in data.columns:
                 job_title = str(data.iloc[idx]['title'])
             elif 'Title' in data.columns:
@@ -117,16 +126,36 @@ def recommend_jobs(user_skills, top_n=3):
                 else:
                     job_title = f"Job {idx + 1}"
             
-            # Get additional job details if available
+            # Get cosine score for this job
+            cosine_score = cosine_scores[idx]
+            
+            # Get RF score for this job title (0 if missing)
+            rf_score = rf_score_map.get(job_title, 0.0)
+            
+            # Calculate hybrid score: 0.6 * cosine_score + 0.4 * rf_score
+            hybrid_score = 0.6 * cosine_score + 0.4 * rf_score
+            
+            hybrid_scores.append((idx, hybrid_score, job_title))
+        
+        # Step 6: Sort by hybrid_score and get top_n
+        hybrid_scores.sort(key=lambda x: x[1], reverse=True)
+        top_recommendations = hybrid_scores[:top_n]
+        
+        # Step 7: Prepare final recommendations with all available data
+        recommendations = []
+        for idx, hybrid_score, job_title in top_recommendations:
             job_details = {
                 'title': job_title,
-                'match_score': float(similarity_scores[idx])
+                'hybrid_score': float(hybrid_score)
             }
             
             # Add other relevant fields if they exist
-            for col in ['department', 'location', 'company', 'Company', 'duration', 'stipend']:
+            available_columns = ['department', 'location', 'company', 'Company', 'duration', 'stipend']
+            for col in available_columns:
                 if col in data.columns:
-                    job_details[col.lower()] = str(data.iloc[idx][col])
+                    value = data.iloc[idx][col]
+                    if pd.notna(value):  # Only add non-null values
+                        job_details[col.lower()] = str(value)
             
             recommendations.append(job_details)
         

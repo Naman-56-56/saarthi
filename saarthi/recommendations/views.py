@@ -56,11 +56,18 @@ def internships_api(request):
 @require_http_methods(["POST"])
 def recommend_api(request):
     """
-    API endpoint for job recommendations based on user skills.
+    API endpoint for job recommendations using a hybrid recommendation model.
+    
+    The hybrid model combines:
+    - Cosine similarity (60% weight): Based on TF-IDF vectorization of skills
+    - Random Forest predictions (40% weight): ML model trained on job-skill patterns
+    
+    Final hybrid_score = 0.6 * cosine_score + 0.4 * rf_score
     
     Expected POST body:
     {
-        "skills": ["Python", "HTML", "CSS"]
+        "skills": ["Python", "HTML", "CSS"],
+        "top_n": 3  // optional, defaults to 3
     }
     
     Returns:
@@ -68,13 +75,18 @@ def recommend_api(request):
         "recommendations": [
             {
                 "title": "Job Title",
-                "match_score": 0.85,
+                "hybrid_score": 0.85,
                 "department": "Engineering",
                 "location": "Remote",
+                "company": "Company Name",
+                "duration": "6 months",
+                "stipend": "$1000",
                 ...
             }
         ],
-        "status": "success"
+        "status": "success",
+        "input_skills": ["Python", "HTML", "CSS"],
+        "total_recommendations": 3
     }
     """
     try:
