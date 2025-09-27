@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { sendOtpEmail } from "@/utils/emailjs"
+
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -160,24 +162,21 @@ export default function AnimatedProfileForm({ isFirstTime, onComplete }: Profile
     }
   }
 
+  // Send OTP using EmailJS
   const sendOtp = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/api/users/send-otp/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ email: formData.email })
-      });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        setOtpSent(true);
-      } else {
-        alert(data.error || "Failed to send OTP");
-      }
+      // Generate a random 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      // Calculate expiry time (15 minutes from now)
+      const expiry = new Date(Date.now() + 15 * 60 * 1000);
+      const time = expiry.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      await sendOtpEmail(formData.email, otp, time);
+      setOtpSent(true);
+      // Optionally, store the OTP in state for verification
+      // setGeneratedOtp(otp);
     } catch (err) {
-      alert("Network error while sending OTP");
+      alert("Failed to send OTP via EmailJS");
     }
     setIsLoading(false);
   }

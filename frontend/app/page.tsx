@@ -49,18 +49,19 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen w-full relative bg-black">
-      {/* Pearl Mist Background with Top Glow */}
+    <div className="min-h-screen w-full relative bg-black text-white">
+      {/* Orange Glow Background */}
       <div
         className="absolute inset-0 z-0"
         style={{
-          background: "radial-gradient(ellipse 50% 35% at 50% 0%, rgba(226, 232, 240, 0.12), transparent 60%), #000000",
+          background:
+            "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255, 140, 0, 0.18), transparent 70%), #000000",
         }}
       />
 
       {/* Desktop Header */}
       <header
-        className={`sticky top-4 z-[9999] mx-auto hidden w-full flex-row items-center justify-between self-start rounded-full bg-background/80 md:flex backdrop-blur-sm border border-border/50 shadow-lg transition-all duration-300 ${
+        className={`sticky top-4 z-[9999] mx-auto hidden w-full flex-row items-center justify-between self-start rounded-full bg-neutral-900/90 md:flex backdrop-blur-sm border border-orange-500/40 shadow-lg transition-all duration-300 ${
           isScrolled ? "max-w-3xl px-2" : "max-w-5xl px-4"
         } py-2`}
         style={{
@@ -162,14 +163,14 @@ export default function Home() {
             <>
               <Link
                 href="/dashboard"
-                className="rounded-md font-bold relative cursor-pointer inline-block text-center border border-primary text-primary px-4 py-2 text-sm bg-background hover:bg-primary hover:text-white transition-colors duration-200 shadow-sm"
+                className="rounded-md font-bold relative cursor-pointer inline-block text-center border border-orange-500 text-orange-400 px-4 py-2 text-sm bg-neutral-900 hover:bg-orange-500 hover:text-white transition-colors duration-200 shadow-sm"
                 prefetch={false}
               >
                 Dashboard
               </Link>
               <button
                 onClick={handleLogout}
-                className="rounded-md font-bold relative cursor-pointer inline-block text-center border border-primary text-primary px-4 py-2 text-sm bg-background hover:bg-primary hover:text-white transition-colors duration-200 shadow-sm"
+                className="rounded-md font-bold relative cursor-pointer inline-block text-center border border-orange-500 text-orange-400 px-4 py-2 text-sm bg-neutral-900 hover:bg-orange-500 hover:text-white transition-colors duration-200 shadow-sm"
               >
                 Logout
               </button>
@@ -178,14 +179,14 @@ export default function Home() {
             <>
               <Link
                 href="/login"
-                className="rounded-md font-bold relative cursor-pointer inline-block text-center border border-primary text-primary px-4 py-2 text-sm bg-background hover:bg-primary hover:text-white transition-colors duration-200 shadow-sm"
+                className="rounded-md font-bold relative cursor-pointer inline-block text-center border border-orange-500 text-orange-400 px-4 py-2 text-sm bg-neutral-900 hover:bg-orange-500 hover:text-white transition-colors duration-200 shadow-sm"
                 prefetch={false}
               >
                 Log In
               </Link>
               <Link
                 href="/signup"
-                className="rounded-md font-bold relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center bg-gradient-to-b from-primary to-primary/80 text-white shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset] px-4 py-2 text-sm"
+                className="rounded-md font-bold relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center bg-gradient-to-b from-orange-500 to-orange-700 text-white shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset] px-4 py-2 text-sm"
                 prefetch={false}
               >
                 Join Saarthi
@@ -196,7 +197,7 @@ export default function Home() {
       </header>
 
       {/* Mobile Header */}
-      <header className="sticky top-4 z-[9999] mx-4 flex w-auto flex-row items-center justify-between rounded-full bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg md:hidden px-4 py-3">
+      <header className="sticky top-4 z-[9999] mx-4 flex w-auto flex-row items-center justify-between rounded-full bg-neutral-900/90 backdrop-blur-sm border border-orange-500/40 shadow-lg md:hidden px-4 py-3">
         <SarthiLogo size="sm" />
 
         <button
@@ -220,8 +221,8 @@ export default function Home() {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm md:hidden">
-          <div className="absolute top-20 left-4 right-4 bg-background/95 backdrop-blur-md border border-border/50 rounded-2xl shadow-2xl p-6">
+        <div className="fixed inset-0 z-[9998] bg-black/80 backdrop-blur-sm md:hidden">
+          <div className="absolute top-20 left-4 right-4 bg-neutral-900/95 backdrop-blur-md border border-orange-500/40 rounded-2xl shadow-2xl p-6">
             <nav className="flex flex-col space-y-4">
               <button
                 onClick={() => handleMobileNavClick("features")}
@@ -250,13 +251,13 @@ export default function Home() {
               <div className="border-t border-border/50 pt-4 mt-4 flex flex-col space-y-3">
                 <Link
                   href="/login"
-                  className="px-4 py-3 text-lg font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-background/50 cursor-pointer"
+                  className="px-4 py-3 text-lg font-medium text-orange-400 hover:text-white transition-colors rounded-lg hover:bg-orange-500/80 cursor-pointer"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/signup"
-                  className="px-4 py-3 text-lg font-bold text-center bg-gradient-to-b from-primary to-primary/80 text-white rounded-lg shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                  className="px-4 py-3 text-lg font-bold text-center bg-gradient-to-b from-orange-500 to-orange-700 text-white rounded-lg shadow-lg hover:-translate-y-0.5 transition-all duration-200"
                 >
                   Join Saarthi
                 </Link>

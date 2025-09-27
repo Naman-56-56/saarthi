@@ -52,6 +52,7 @@ def send_otp(request):
 			</div>
 			"""
 			from django.conf import settings
+			import traceback
 			try:
 				send_mail(
 					subject,
@@ -63,7 +64,9 @@ def send_otp(request):
 				)
 				print('message sent')
 			except Exception as e:
-				response = JsonResponse({'error': f'Failed to send OTP email: {str(e)}'}, status=500)
+				tb = traceback.format_exc()
+				print('Failed to send OTP email:', tb)
+				response = JsonResponse({'error': f'Failed to send OTP email: {str(e)}', 'traceback': tb}, status=500)
 				return _set_cors_headers(response, request)
 			response = JsonResponse({'success': True, 'message': 'OTP sent'})
 			return _set_cors_headers(response, request)

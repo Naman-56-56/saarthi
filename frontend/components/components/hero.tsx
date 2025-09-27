@@ -1,17 +1,27 @@
 "use client"
 
-import { PixelCard } from "../ui/pixelcards"
+// Update the import path if the file is located elsewhere, for example:
+// Update the import path to the correct location of PixelCard
+// Update the import path to the correct location of PixelCard
+// import { PixelCard } from "../ui/pixel-card"
+// Update the import path below to the correct location of PixelCard
+// import { PixelCard } from "../ui/pixel-card"
+// Update the import path below to the correct location of PixelCard
+// Or correct the path as needed to match your project structure
 import { geist } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
 import { CloudLightning, MoveRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import HomeBadge from "../ui/home-badge"
+// Update the import path to the correct location of gridbeam
 import { Beam } from "../ui/gridbeam"
 import { Sparkles } from "lucide-react"
 import { useEffect, useState } from "react"
+// Update the import path to the correct location of pulse-card
 import { CardHoverEffect } from "../ui/pulse-card"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { PixelCard } from "./ui/pixelcards"
 
 const PIXEL_SCRIPT_URL =
   "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/pixel-RKkUKH2OXWk9adKbDnozmndkwseTQh.js"

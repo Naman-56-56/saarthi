@@ -1,3 +1,4 @@
+"use client"
 // Update the import path below if the file is located elsewhere, e.g.:
 import { ChatInterface } from "./components-chat/chat-interface";
 import { useEffect, useState } from "react";
