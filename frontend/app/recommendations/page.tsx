@@ -47,7 +47,9 @@ import {
   ArrowLeft,
   Loader2,
   AlertCircle,
-  Star
+  Star,
+  Code,
+  Tag
 } from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -87,19 +89,22 @@ const SarthiLogo = ({ className }: { className?: string }) => (
     </text>
 
     <text x="45" y="28" fontSize="8" fontWeight="500" fill="#6B7280" fontFamily="system-ui, -apple-system, sans-serif">
-      PM YOUNA PORTAL
+      PM YOJNA PORTAL
     </text>
   </svg>
 )
 
 interface Recommendation {
   title: string
-  match_score: number
+  match_percentage: number
+  hybrid_score: number
   department?: string
   location?: string
   company?: string
   duration?: string
   stipend?: string
+  required_skills?: string
+  expanded_skills_used?: string[]
 }
 
 interface ApiResponse {
@@ -107,6 +112,7 @@ interface ApiResponse {
   status: string
   input_skills: string[]
   total_recommendations: number
+  error?: string
 }
 
 export default function RecommendationsPage() {
@@ -174,7 +180,35 @@ export default function RecommendationsPage() {
   }
 
   const formatMatchScore = (score: number) => {
-    return (score * 100).toFixed(1)
+    return score.toFixed(1)
+  }
+
+  // Helper function to check if a skill matches user input
+  const isSkillMatched = (skill: string, userInput: string): boolean => {
+    const skillLower = skill.toLowerCase().trim()
+    const userInputLower = userInput.toLowerCase()
+    
+    // Direct match
+    if (userInputLower.includes(skillLower)) return true
+    
+    // Common abbreviations and synonyms
+    const synonyms: Record<string, string[]> = {
+      'javascript': ['js'],
+      'js': ['javascript'],
+      'python': ['py'],
+      'typescript': ['ts'],
+      'ts': ['typescript'],
+      'react': ['reactjs'],
+      'vue': ['vuejs'],
+      'angular': ['angularjs']
+    }
+    
+    for (const [key, values] of Object.entries(synonyms)) {
+      if (skillLower === key && values.some(v => userInputLower.includes(v))) return true
+      if (values.includes(skillLower) && userInputLower.includes(key)) return true
+    }
+    
+    return false
   }
 
   return (
@@ -358,6 +392,41 @@ export default function RecommendationsPage() {
                                         <Badge variant="secondary">{job.stipend}</Badge>
                                       )}
                                     </div>
+                                    
+                                    {/* Required Skills Section */}
+                                    {job.required_skills && (
+                                      <div className="mt-3 pt-3 border-t">
+                                        <div className="flex items-center gap-1 mb-2">
+                                          <Code className="h-4 w-4 text-indigo-500" />
+                                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Required Skills</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {job.required_skills.split(' ').filter(skill => skill.trim().length > 0).slice(0, 8).map((skill, index) => {
+                                            const isMatched = isSkillMatched(skill.trim(), skillsInput);
+                                            
+                                            return (
+                                              <Badge 
+                                                key={index} 
+                                                variant="outline" 
+                                                className={`text-xs ${
+                                                  isMatched 
+                                                    ? 'bg-green-100 dark:bg-green-950 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300' 
+                                                    : 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300'
+                                                }`}
+                                              >
+                                                {skill.trim()}
+                                                {isMatched && <CheckCircle className="ml-1 h-3 w-3" />}
+                                              </Badge>
+                                            );
+                                          })}
+                                          {job.required_skills.split(' ').filter(skill => skill.trim().length > 0).length > 8 && (
+                                            <Badge variant="outline" className="text-xs bg-gray-50 dark:bg-gray-800">
+                                              +{job.required_skills.split(' ').filter(skill => skill.trim().length > 0).length - 8} more
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                   <div className="text-right ml-4">
                                     <div className="flex items-center gap-1 mb-1">
@@ -365,7 +434,7 @@ export default function RecommendationsPage() {
                                       <span className="text-sm font-medium">Match Score</span>
                                     </div>
                                     <div className="text-2xl font-bold text-blue-600">
-                                      {formatMatchScore(job.match_score)}%
+                                      {formatMatchScore(job.match_percentage)}%
                                     </div>
                                   </div>
                                 </div>
@@ -374,7 +443,7 @@ export default function RecommendationsPage() {
                                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                       <div 
                                         className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500"
-                                        style={{ width: `${formatMatchScore(job.match_score)}%` }}
+                                        style={{ width: `${formatMatchScore(job.match_percentage)}%` }}
                                       />
                                     </div>
                                   </div>

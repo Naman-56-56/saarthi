@@ -4,7 +4,11 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import os
+import warnings
 from django.conf import settings
+
+# Suppress scikit-learn version warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
 
 # Global variables to cache loaded models
 _vectorizer = None
@@ -54,37 +58,44 @@ def recommend_jobs(user_skills, top_n=3):
         # Load models and data
         vectorizer, rf_model, data = load_models()
         
-        # Step 1: Join skills into text and vectorize
-        user_skills_text = ' '.join(user_skills)
+        # Skill mapping for frameworks not in training data
+        skill_mappings = {
+            'django': ['python', 'web', 'api', 'rest'],
+            'flask': ['python', 'web', 'api', 'rest'],
+            'fastapi': ['python', 'api', 'rest'],
+            'spring boot': ['java', 'api', 'rest'],
+            'express': ['javascript', 'node.js', 'api', 'rest'],
+            'vue': ['javascript', 'frontend', 'web'],
+            'angular': ['javascript', 'frontend', 'web'],
+            'laravel': ['php', 'web', 'api'],
+            'ruby on rails': ['ruby', 'web', 'api'],
+        }
+        
+        # Expand user skills with mappings
+        expanded_skills = []
+        for skill in user_skills:
+            skill_lower = skill.lower().strip()
+            expanded_skills.append(skill)  # Keep original
+            
+            # Add mapped skills if they exist
+            if skill_lower in skill_mappings:
+                expanded_skills.extend(skill_mappings[skill_lower])
+        
+        # Remove duplicates and join into text
+        expanded_skills = list(set(expanded_skills))
+        user_skills_text = ' '.join(expanded_skills)
         user_vector = vectorizer.transform([user_skills_text])
         
-        # Step 2: Get job skills from data
-        job_skills_columns = []
-        for col in data.columns:
-            if 'skill' in col.lower() or 'requirement' in col.lower() or 'technology' in col.lower():
-                job_skills_columns.append(col)
-        
-        if not job_skills_columns:
-            # Fallback: use a 'skills' column if it exists, or create a combined skills text
-            if 'skills' in data.columns:
-                job_skills_text = data['skills'].fillna('').astype(str)
-            elif 'Skills' in data.columns:
-                job_skills_text = data['Skills'].fillna('').astype(str)
-            else:
-                # Try to find any text column that might contain skills
-                text_columns = data.select_dtypes(include=['object']).columns
-                if len(text_columns) > 1:
-                    # Combine all text columns except title/position columns
-                    skill_cols = [col for col in text_columns if 'title' not in col.lower() and 'position' not in col.lower()]
-                    if skill_cols:
-                        job_skills_text = data[skill_cols].fillna('').apply(lambda x: ' '.join(x), axis=1)
-                    else:
-                        job_skills_text = data[text_columns].fillna('').apply(lambda x: ' '.join(x), axis=1)
-                else:
-                    raise ValueError("No suitable skills column found in the data")
+        # Step 2: Use 'all_skills' column which contains the combined skills
+        if 'all_skills' in data.columns:
+            job_skills_text = data['all_skills'].fillna('').astype(str)
         else:
-            # Combine all skill-related columns
-            job_skills_text = data[job_skills_columns].fillna('').apply(lambda x: ' '.join(x), axis=1)
+            # Fallback: use skill columns if all_skills doesn't exist
+            skill_columns = [col for col in data.columns if 'skill' in col.lower()]
+            if skill_columns:
+                job_skills_text = data[skill_columns].fillna('').apply(lambda x: ' '.join(x), axis=1)
+            else:
+                raise ValueError("No suitable skills column found in the data")
         
         # Vectorize job skills
         job_vectors = vectorizer.transform(job_skills_text)
@@ -94,63 +105,64 @@ def recommend_jobs(user_skills, top_n=3):
         
         # Step 4: Get Random Forest predictions
         rf_probabilities = rf_model.predict_proba(user_vector)[0]  # Get probabilities for first (only) sample
-        rf_classes = rf_model.classes_  # Get the class labels (job titles)
+        rf_classes = rf_model.classes_  # Get the class labels (job labels/indices)
         
-        # Create a mapping from job titles to RF probabilities
-        rf_score_map = {}
-        for i, job_title in enumerate(rf_classes):
-            rf_score_map[job_title] = rf_probabilities[i]
+        # Step 5: Group by unique job titles to avoid duplicates and get best scores
+        job_title_scores = {}
         
-        # Step 5: For each row in dataset, compute hybrid score
-        hybrid_scores = []
         for idx in range(len(data)):
             # Get job title for this row
-            job_title = ""
-            if 'title' in data.columns:
-                job_title = str(data.iloc[idx]['title'])
-            elif 'Title' in data.columns:
-                job_title = str(data.iloc[idx]['Title'])
-            elif 'job_title' in data.columns:
-                job_title = str(data.iloc[idx]['job_title'])
-            elif 'Job Title' in data.columns:
-                job_title = str(data.iloc[idx]['Job Title'])
-            elif 'position' in data.columns:
-                job_title = str(data.iloc[idx]['position'])
-            elif 'Position' in data.columns:
-                job_title = str(data.iloc[idx]['Position'])
-            else:
-                # Use the first text column as job title
-                text_columns = data.select_dtypes(include=['object']).columns
-                if len(text_columns) > 0:
-                    job_title = str(data.iloc[idx][text_columns[0]])
-                else:
-                    job_title = f"Job {idx + 1}"
+            job_title = str(data.iloc[idx]['Job Title']) if 'Job Title' in data.columns else f"Job {idx + 1}"
             
             # Get cosine score for this job
             cosine_score = cosine_scores[idx]
             
-            # Get RF score for this job title (0 if missing)
-            rf_score = rf_score_map.get(job_title, 0.0)
+            # Get RF score based on Job_Label if it exists
+            rf_score = 0.0
+            if 'Job_Label' in data.columns:
+                job_label = data.iloc[idx]['Job_Label']
+                # Find the RF probability for this job label
+                if job_label in rf_classes:
+                    label_idx = np.where(rf_classes == job_label)[0]
+                    if len(label_idx) > 0:
+                        rf_score = rf_probabilities[label_idx[0]]
             
             # Calculate hybrid score: 0.6 * cosine_score + 0.4 * rf_score
             hybrid_score = 0.6 * cosine_score + 0.4 * rf_score
             
-            hybrid_scores.append((idx, hybrid_score, job_title))
+            # Keep the best score for each unique job title
+            if job_title not in job_title_scores or hybrid_score > job_title_scores[job_title]['score']:
+                job_title_scores[job_title] = {
+                    'score': hybrid_score,
+                    'index': idx,
+                    'cosine_score': cosine_score,
+                    'rf_score': rf_score
+                }
         
-        # Step 6: Sort by hybrid_score and get top_n
-        hybrid_scores.sort(key=lambda x: x[1], reverse=True)
-        top_recommendations = hybrid_scores[:top_n]
+        # Step 6: Sort by hybrid_score and get top_n unique jobs
+        sorted_jobs = sorted(job_title_scores.items(), key=lambda x: x[1]['score'], reverse=True)
+        top_jobs = sorted_jobs[:top_n]
         
         # Step 7: Prepare final recommendations with all available data
         recommendations = []
-        for idx, hybrid_score, job_title in top_recommendations:
+        for job_title, job_info in top_jobs:
+            idx = job_info['index']
+            
             job_details = {
                 'title': job_title,
-                'hybrid_score': float(hybrid_score)
+                'hybrid_score': round(float(job_info['score']), 4),
+                'match_percentage': round(float(job_info['score']) * 100, 2),  # Convert to percentage
+                'cosine_score': round(float(job_info['cosine_score']), 4),
+                'rf_score': round(float(job_info['rf_score']), 4),
+                'expanded_skills_used': expanded_skills  # Show what skills were actually used for matching
             }
             
-            # Add other relevant fields if they exist
-            available_columns = ['department', 'location', 'company', 'Company', 'duration', 'stipend']
+            # Add skills information
+            if 'all_skills' in data.columns:
+                job_details['required_skills'] = str(data.iloc[idx]['all_skills'])
+            
+            # Add other relevant fields if they exist (though they might not be in this dataset)
+            available_columns = ['department', 'location', 'company', 'Company', 'duration', 'stipend', 'description']
             for col in available_columns:
                 if col in data.columns:
                     value = data.iloc[idx][col]
@@ -164,6 +176,8 @@ def recommend_jobs(user_skills, top_n=3):
     except Exception as e:
         # Log the error and return empty list
         print(f"Error in recommend_jobs: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def get_model_info():

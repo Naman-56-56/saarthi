@@ -87,9 +87,9 @@ const SarthiLogo = ({ className }: { className?: string }) => (
       SAARTHI
     </text>
 
-    {/* PM Youna subtitle */}
+    {/* PM Yojna subtitle */}
     <text x="45" y="28" fontSize="8" fontWeight="500" fill="#6B7280" fontFamily="system-ui, -apple-system, sans-serif">
-      PM YOUNA PORTAL
+      PM YOJNA PORTAL
     </text>
   </svg>
 )
@@ -857,7 +857,7 @@ export function Saarthi() {
                             <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                               <div className="space-y-4">
                                 <Badge className="bg-white/20 text-white hover:bg-white/30 rounded-xl">
-                                  PM Youna Initiative
+                                  PM Yojna Initiative
                                 </Badge>
                                 <h2 className="text-3xl font-bold">Shape India's Future</h2>
                                 <p className="max-w-[600px] text-white/90">
